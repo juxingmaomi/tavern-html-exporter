@@ -8,20 +8,20 @@
 
 导入以后，酒馆会从 GitHub 加载：
 
-`https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v0.30/index.js`
+`https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v0.31/index.js`
 
 ## 以后更新版本
 
 打开酒馆助手脚本，找到入口壳里的这一行：
 
 ```js
-const VERSION = 'v0.30';
+const VERSION = 'v0.31';
 ```
 
 把版本号改成新版本，例如：
 
 ```js
-const VERSION = 'v0.31';
+const VERSION = 'v0.32';
 ```
 
 保存后刷新页面即可。

@@ -1,14 +1,14 @@
 // == TavernHelper Script ==
 // name: 聊天记录 HTML 导出器
 // author: Codex
-// version: v0.30
+// version: v0.31
 // description: 在酒馆助手中导出聊天为 HTML，支持当前聊天导出、聊天文件列表单个导出、单文件分页和正则渲染规则。
 
 (function () {
   'use strict';
 
   const SCRIPT_NAME = '聊天记录 HTML 导出器';
-  const SCRIPT_VERSION = 'v0.30';
+  const SCRIPT_VERSION = 'v0.31';
   const BUTTON_NAME = 'HTML导出';
   const STORAGE_KEY = 'th_html_exporter_settings_v3';
   const STYLE_ID = 'th-html-exporter-style-v2';
@@ -1506,6 +1506,15 @@ ${buildThemeVariables(meta.settings)}
       text-align: center;
       font-size: 14px;
     }
+    .archive-page-warning {
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      border: 1px solid color-mix(in srgb, var(--system) 45%, transparent);
+      background: color-mix(in srgb, var(--system) 12%, var(--panel));
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.7;
+    }
     .archive-page-data-store {
       display: none !important;
     }
@@ -2441,6 +2450,24 @@ ${String.raw`
       setTimeout(() => window.thArchiveRevealEntry(entry, { instant: true, updateHash: false }), 90);
       setTimeout(() => window.thArchiveRevealEntry(entry, { instant: true, updateHash: false }), 260);
     };
+    window.thArchiveRunPageStep = function(label, handler, scope) {
+      if (typeof handler !== 'function') return true;
+      try {
+        handler(scope);
+        return true;
+      } catch (error) {
+        console.error('HTML 分页后处理失败：' + label, error);
+        const container = scope && scope.querySelector ? scope : document.querySelector('[data-page-container]');
+        if (container && !container.querySelector('[data-archive-step-error="' + label + '"]')) {
+          const note = document.createElement('div');
+          note.className = 'archive-page-warning';
+          note.dataset.archiveStepError = label;
+          note.textContent = '这一页已载入，但“' + label + '”后处理失败；正文已保留，可把控制台错误发给猴猴排查。';
+          container.insertBefore(note, container.firstChild);
+        }
+        return false;
+      }
+    };
     window.thArchiveLoadPage = function(page) {
       const container = document.querySelector('[data-page-container]');
       const dataNode = document.querySelector('[data-page-data="' + page + '"]');
@@ -2448,32 +2475,22 @@ ${String.raw`
       if (container.dataset.currentPage === String(page)) return true;
       try {
         container.innerHTML = JSON.parse(dataNode.textContent || '""');
-        container.dataset.currentPage = String(page);
-        document.body.classList.add('th-lazy-pages');
-        container.querySelectorAll('.message[data-page]').forEach(article => {
-          article.classList.add('is-page-active');
-        });
-        if (typeof window.thArchiveCleanFenceArtifacts === 'function') {
-          window.thArchiveCleanFenceArtifacts(container);
-        }
-        if (typeof window.thArchiveFormatPlainTextBlocks === 'function') {
-          window.thArchiveFormatPlainTextBlocks(container);
-        }
-        if (typeof window.thArchiveRenderOpeningWidgets === 'function') {
-          window.thArchiveRenderOpeningWidgets(container);
-        }
-        if (typeof window.thArchiveRenderHtmlCodeBlocks === 'function') {
-          window.thArchiveRenderHtmlCodeBlocks(container);
-        }
-        if (typeof window.thArchivePostProcessArchiveBlocks === 'function') {
-          window.thArchivePostProcessArchiveBlocks(container);
-        }
-        return true;
       } catch (error) {
         container.innerHTML = '<div class="archive-page-loading">这一页载入失败，请重新导出 HTML。</div>';
         console.error('HTML 分页载入失败', error);
         return true;
       }
+      container.dataset.currentPage = String(page);
+      document.body.classList.add('th-lazy-pages');
+      container.querySelectorAll('.message[data-page]').forEach(article => {
+        article.classList.add('is-page-active');
+      });
+      window.thArchiveRunPageStep('清理代码围栏', window.thArchiveCleanFenceArtifacts, container);
+      window.thArchiveRunPageStep('文本分段', window.thArchiveFormatPlainTextBlocks, container);
+      window.thArchiveRunPageStep('首楼小组件', window.thArchiveRenderOpeningWidgets, container);
+      window.thArchiveRunPageStep('HTML代码块渲染', window.thArchiveRenderHtmlCodeBlocks, container);
+      window.thArchiveRunPageStep('折叠块绑定', window.thArchivePostProcessArchiveBlocks, container);
+      return true;
     };
     window.thArchiveShowPage = function(page, options) {
       const body = document.body;
@@ -2523,18 +2540,10 @@ ${String.raw`
       }
       if (typeof window.bindThExportFrames === 'function') window.bindThExportFrames();
       const activeScope = document.querySelector('[data-page-container]') || document;
-      if (typeof window.thArchiveCleanFenceArtifacts === 'function') {
-        window.thArchiveCleanFenceArtifacts(activeScope);
-      }
-      if (typeof window.thArchiveFormatPlainTextBlocks === 'function') {
-        window.thArchiveFormatPlainTextBlocks(activeScope);
-      }
-      if (typeof window.thArchiveRenderOpeningWidgets === 'function') {
-        window.thArchiveRenderOpeningWidgets(activeScope);
-      }
-      if (typeof window.thArchiveRenderHtmlCodeBlocks === 'function') {
-        window.thArchiveRenderHtmlCodeBlocks(activeScope);
-      }
+      window.thArchiveRunPageStep('清理代码围栏', window.thArchiveCleanFenceArtifacts, activeScope);
+      window.thArchiveRunPageStep('文本分段', window.thArchiveFormatPlainTextBlocks, activeScope);
+      window.thArchiveRunPageStep('首楼小组件', window.thArchiveRenderOpeningWidgets, activeScope);
+      window.thArchiveRunPageStep('HTML代码块渲染', window.thArchiveRenderHtmlCodeBlocks, activeScope);
       activeScope.querySelectorAll('.message.is-page-active iframe.th-export-frame, .message.is-page-active .message-content iframe[srcdoc]').forEach(frame => {
         window.resizeThExportFrame(frame);
         window.observeThExportFrame(frame);
@@ -2583,13 +2592,13 @@ ${String.raw`
       window.thArchiveBindReaderTools();
       window.thArchiveOpenHashBookmark();
       const activeScope = document.querySelector('[data-page-container]') || document;
-      window.thArchiveCleanFenceArtifacts(activeScope);
-      window.thArchiveFormatPlainTextBlocks(activeScope);
-      window.thArchiveRenderOpeningWidgets(activeScope);
-      window.thArchiveRenderHtmlCodeBlocks(activeScope);
-      window.thArchivePostProcessArchiveBlocks(activeScope);
-      window.thArchiveCleanFenceArtifacts(activeScope);
-      window.bindThExportFrames();
+      window.thArchiveRunPageStep('清理代码围栏', window.thArchiveCleanFenceArtifacts, activeScope);
+      window.thArchiveRunPageStep('文本分段', window.thArchiveFormatPlainTextBlocks, activeScope);
+      window.thArchiveRunPageStep('首楼小组件', window.thArchiveRenderOpeningWidgets, activeScope);
+      window.thArchiveRunPageStep('HTML代码块渲染', window.thArchiveRenderHtmlCodeBlocks, activeScope);
+      window.thArchiveRunPageStep('折叠块绑定', window.thArchivePostProcessArchiveBlocks, activeScope);
+      window.thArchiveRunPageStep('二次清理代码围栏', window.thArchiveCleanFenceArtifacts, activeScope);
+      window.thArchiveRunPageStep('iframe绑定', window.bindThExportFrames, activeScope);
     };
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', window.thArchiveBoot);
