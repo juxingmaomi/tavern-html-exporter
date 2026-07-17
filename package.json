@@ -1,0 +1,10 @@
+{
+  "name": "tavern-html-exporter",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "check": "node --check index.js && node --check src/core.js && node --check src/render.js && node --check src/archive.js && node --check src/app.js",
+    "test": "node --test test/*.test.mjs"
+  }
+}

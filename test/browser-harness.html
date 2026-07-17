@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>running</title></head>
+<body><pre id="result">running</pre>
+<script type="module">
+  import { normalizeSettings } from '../src/core.js';
+  import { buildArchiveDocument } from '../src/archive.js';
+  import { renderCurrentMessage, sanitizeFragment, snapshotDisplayedMessage } from '../src/render.js';
+
+  const loadFrame = html => new Promise(resolve => {
+    const frame = document.createElement('iframe');
+    frame.addEventListener('load', () => setTimeout(() => resolve(frame), 80), { once: true });
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  });
+
+  try {
+    const sanitized = sanitizeFragment(document, '<scr' + 'ipt>bad()</scr' + 'ipt><img src="x" onerror="bad()"><a href="javascript:bad()">x</a>');
+
+    let formattingCalls = 0;
+    const helper = {
+      retrieveDisplayedMessage: () => ({ length: 0 }),
+      formatAsDisplayedMessage: value => {
+        formattingCalls += 1;
+        return `<p>${value}</p><img src="x" onerror="bad()"><scr` + `ipt>bad()</scr` + `ipt>`;
+      },
+    };
+    const diagnostics = { snapshots: 0, formatted: 0, plain: 0, warnings: [] };
+    const rendered = await renderCurrentMessage({
+      document,
+      tavernHelper: helper,
+      message: { id: 2, role: 'assistant', hidden: false, name: '角色', text: '正文' },
+      rules: [],
+      settings: normalizeSettings({ preferDisplayedSnapshot: false }),
+      diagnostics,
+    });
+
+    const displayedNode = document.createElement('div');
+    const renderRoot = document.createElement('div');
+    renderRoot.className = 'TH-render';
+    const liveFrame = document.createElement('iframe');
+    liveFrame.setAttribute('sandbox', '');
+    liveFrame.setAttribute('srcdoc', '<html><head><style>.red{color:red}</style><script>bad()</' + 'script></head><body><div class="red">快照</div></body></html>');
+    renderRoot.appendChild(liveFrame);
+    displayedNode.appendChild(renderRoot);
+    const snapshotHelper = { retrieveDisplayedMessage: () => ({ 0: displayedNode, length: 1, get: () => displayedNode }) };
+    const snapshot = snapshotDisplayedMessage(document, snapshotHelper, 0);
+    const snapshotTemplate = document.createElement('template');
+    snapshotTemplate.innerHTML = snapshot;
+    const outerSrcdoc = snapshotTemplate.content.querySelector('iframe')?.getAttribute('srcdoc') || '';
+
+    const archive = buildArchiveDocument([{ ...rendered, source: rendered.source }], {
+      title: '安全测试', baseName: '安全测试', part: 1, totalParts: 1,
+      settings: normalizeSettings({ customCss: '</sty' + 'le><scr' + 'ipt>document.documentElement.dataset.pwn="yes"</scr' + 'ipt><sty' + 'le>' }),
+      characterName: '角色', chatTitle: '聊天',
+    });
+    const archiveFrame = await loadFrame(archive);
+
+    const result = {
+      sanitizerRemovedScript: !sanitized.includes('<script'),
+      sanitizerRemovedEvent: !sanitized.includes('onerror'),
+      sanitizerRemovedJavascriptUrl: !sanitized.includes('javascript:'),
+      formattingCalls,
+      renderedHasNoScript: !rendered.html.includes('<script'),
+      renderedHasNoEvent: !rendered.html.includes('onerror'),
+      snapshotKeepsStyle: outerSrcdoc.includes('.red{color:red}'),
+      snapshotRemovesScript: !outerSrcdoc.includes('<script'),
+      customCssDidNotExecute: archiveFrame.contentDocument.documentElement.dataset.pwn !== 'yes',
+      archiveMessageCount: archiveFrame.contentDocument.querySelectorAll('.thx-message').length,
+    };
+    document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+    document.title = Object.values(result).every(Boolean) ? 'complete' : 'failed';
+  } catch (error) {
+    document.getElementById('result').textContent = String(error?.stack || error);
+    document.title = 'error';
+  }
+</script>
+</body>
+</html>

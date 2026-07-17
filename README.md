@@ -1,33 +1,91 @@
-# Tavern HTML Exporter
+# 聊天记录 HTML 导出器
 
-聊天记录 HTML 导出器的 GitHub 发布版。
+适用于 SillyTavern + 酒馆助手的聊天记录导出脚本。
 
-## 当前版本
+当前稳定版本：`v1.0`
 
-- `v0.31`
+## v1.0 是全新重写版
 
-## 酒馆入口壳
+旧版 `v0.30`、`v0.31` 标签会继续保留，但 `v1.0` 不再沿用旧版渲染核心。
 
-导入 `聊天记录HTML导出器-GitHub入口壳.json` 后，脚本会从 jsDelivr 加载指定版本：
+- 每条当前聊天消息只调用一次酒馆显示格式化，避免正则重复执行。
+- 优先保存酒馆页面中已经显示的复杂界面，并转成禁止脚本的静态快照。
+- 保留 iframe 文档里的 CSS，不保存失效的 `blob:` 地址。
+- 移除脚本、事件属性和 `javascript:` 链接。
+- 自定义 CSS 通过 `textContent` 写入，无法闭合 `<style>` 注入脚本。
+- 支持导入本地 `.json`、`.jsonl` 和 `.txt` 聊天文件。
+- 大聊天按指定消息数拆成多个 HTML，避免单文件假分页造成内存暴涨。
 
-```js
-https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v0.31/index.js
+## 安装
+
+在酒馆助手中导入：
+
+`聊天记录HTML导出器-GitHub入口壳.json`
+
+入口壳默认加载：
+
+```text
+https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v1.0/index.js
 ```
 
-以后更新版本时，只需要在入口壳里修改：
+刷新酒馆页面后，点击酒馆助手按钮栏中的“HTML导出”。如果按钮栏 API 暂时不可用，右下角会出现备用按钮。
+
+## 更新版本
+
+以后发布 `v1.1`、`v1.2` 时，只需打开入口壳脚本并修改：
 
 ```js
-const VERSION = 'v0.31';
+const VERSION = 'v1.0';
 ```
 
-例如改成：
+例如更新到：
 
 ```js
-const VERSION = 'v0.32';
+const VERSION = 'v1.1';
 ```
 
-然后保存脚本即可。
+保存并刷新酒馆页面即可。旧标签不会被覆盖，可以随时把版本号改回旧版。
 
-## 发布说明
+## 导出模式
 
-每个稳定版都会打一个 Git tag，例如 `v0.31`。入口壳通过 tag 固定版本，避免 GitHub 最新代码变化后影响已经在用的版本。
+### 当前聊天
+
+- 使用酒馆助手公开 API 读取当前聊天。
+- 使用 `formatAsDisplayedMessage` 一次性完成宏、酒馆正则和 Markdown 格式化。
+- 当前页面已经渲染的复杂前端界面会优先保存为无脚本静态快照。
+- 未显示在 DOM 中的楼层会回退到标准酒馆格式。
+
+### 本地 JSON / JSONL
+
+- 不伪造当前聊天的楼层号、角色上下文或正则深度。
+- 使用安全文本模式和用户设置的自定义规则生成 HTML。
+- 适合导出未打开的聊天文件，但不会假装拥有当前酒馆页面的完整动态界面状态。
+
+## 自定义规则
+
+支持：
+
+- `$0`、`$&`、`{{match}}`：完整匹配
+- `$1`、`$2`：数字捕获组
+- `$<name>`、`${name}`：命名捕获组
+- `/pattern/flags` 格式或分开填写 pattern / flags
+
+自定义规则启用时，该楼层使用标准酒馆格式化，不直接复制现成 DOM 快照。
+
+## 安全限制
+
+- v1.0 不导出或执行聊天内容里的 JavaScript。
+- 依赖脚本运行的播放器、游戏或交互组件只保存其静态可见内容。
+- 外部图片、字体和音频不会自动转成内嵌文件；离线时可能无法访问这些外部资源。
+
+## 开发验证
+
+```powershell
+npm run check
+npm test
+```
+
+浏览器测试夹具：
+
+- `test/browser-harness.html`
+- `test/app-harness.html`
