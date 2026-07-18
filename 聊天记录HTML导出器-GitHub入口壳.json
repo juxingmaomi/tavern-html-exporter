@@ -1,9 +1,9 @@
 {
   "type": "script",
   "enabled": true,
-  "name": "聊天记录 HTML 导出器 GitHub入口 v1.3",
+  "name": "聊天记录 HTML 导出器 GitHub入口 v1.4",
   "id": "tavern-html-exporter-github-loader-v1",
-  "content": "(async () => {\n  const REPO = 'juxingmaomi/tavern-html-exporter';\n  const VERSION = 'v1.3';\n  const URLS = [\n    `https://gcore.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`,\n    `https://cdn.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`,\n  ];\n\n  const state = { repo: REPO, loadedTag: VERSION, urls: URLS, requestedAt: new Date().toISOString() };\n  window.__TH_TAVERN_HTML_EXPORTER_LOADER__ = state;\n\n  const popup = (type, message) => {\n    const host = window.parent && window.parent !== window ? window.parent : window;\n    const toastr = window.toastr || host.toastr;\n    if (toastr && typeof toastr[type] === 'function') {\n      toastr[type](message);\n      return;\n    }\n    if (type === 'error') host.alert(message);\n    else console.log(`[tavern-html-exporter] ${message}`);\n  };\n\n  let lastError;\n  for (const url of URLS) {\n    try {\n      await import(url);\n      state.loadedUrl = url;\n      state.loadedAt = new Date().toISOString();\n      popup('success', `聊天记录 HTML 导出器已加载 ${VERSION}`);\n      return;\n    } catch (error) {\n      lastError = error;\n      console.warn('[tavern-html-exporter] Load attempt failed.', url, error);\n    }\n  }\n\n  state.error = String((lastError && lastError.message) || lastError || 'unknown error');\n  popup('error', `聊天记录 HTML 导出器 ${VERSION} 加载失败。请确认 GitHub 已发布这个标签，或稍后再试。`);\n})();\n",
+  "content": "(async () => {\n  const REPO = 'juxingmaomi/tavern-html-exporter';\n  const VERSION = 'v1.4';\n  const URLS = [\n    `https://gcore.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`,\n    `https://cdn.jsdelivr.net/gh/${REPO}@${VERSION}/index.js`,\n  ];\n\n  const state = { repo: REPO, loadedTag: VERSION, urls: URLS, requestedAt: new Date().toISOString() };\n  window.__TH_TAVERN_HTML_EXPORTER_LOADER__ = state;\n\n  const popup = (type, message) => {\n    const host = window.parent && window.parent !== window ? window.parent : window;\n    const toastr = window.toastr || host.toastr;\n    if (toastr && typeof toastr[type] === 'function') {\n      toastr[type](message);\n      return;\n    }\n    if (type === 'error') host.alert(message);\n    else console.log(`[tavern-html-exporter] ${message}`);\n  };\n\n  let lastError;\n  for (const url of URLS) {\n    try {\n      await import(url);\n      state.loadedUrl = url;\n      state.loadedAt = new Date().toISOString();\n      popup('success', `聊天记录 HTML 导出器已加载 ${VERSION}`);\n      return;\n    } catch (error) {\n      lastError = error;\n      console.warn('[tavern-html-exporter] Load attempt failed.', url, error);\n    }\n  }\n\n  state.error = String((lastError && lastError.message) || lastError || 'unknown error');\n  popup('error', `聊天记录 HTML 导出器 ${VERSION} 加载失败。请确认 GitHub 已发布这个标签，或稍后再试。`);\n})();\n",
   "info": "从 GitHub/jsDelivr 加载手动指定版本的聊天记录 HTML 导出器。以后只需修改 VERSION。",
   "button": {
     "enabled": true,
@@ -15,7 +15,7 @@
     ]
   },
   "data": {
-    "version": "v1.3",
+    "version": "v1.4",
     "plugin": "tavern-html-exporter",
     "loader": "github-jsdelivr-manual",
     "repo": "juxingmaomi/tavern-html-exporter"

@@ -4,6 +4,12 @@
 <body><pre id="result">running</pre>
 <script type="module">
   let formattingCalls = 0;
+  let revokedUrls = 0;
+  const nativeRevokeObjectUrl = URL.revokeObjectURL.bind(URL);
+  URL.revokeObjectURL = url => {
+    revokedUrls += 1;
+    nativeRevokeObjectUrl(url);
+  };
   window.SillyTavern = {
     characterId: 0,
     characters: [{ name: '测试角色' }],
@@ -34,15 +40,21 @@
       if (Date.now() - started > 5000) throw new Error(panel.querySelector('[data-status]').textContent);
       await new Promise(resolve => setTimeout(resolve, 40));
     }
+    const status = panel.querySelector('[data-status]').textContent;
+    const downloadLinks = panel.querySelectorAll('[data-downloads] a[download]').length;
+    window.__TH_CHAT_HTML_EXPORTER_V1__.open();
+    const reopenedPanel = document.querySelector('.thx-export-panel');
     const result = {
       fallbackButtonExists: Boolean(document.getElementById('th-chat-html-exporter-v1-button')),
-      panelOpened: Boolean(panel),
+      panelOpened: Boolean(reopenedPanel),
       formattingCalls,
-      downloadLinks: panel.querySelectorAll('[data-downloads] a[download]').length,
-      status: panel.querySelector('[data-status]').textContent,
+      downloadLinks,
+      status,
+      revokedUrls,
+      overlayCount: document.querySelectorAll('.thx-export-overlay').length,
     };
     document.getElementById('result').textContent = JSON.stringify(result, null, 2);
-    document.title = result.formattingCalls === 2 && result.downloadLinks === 1 ? 'complete' : 'failed';
+    document.title = result.formattingCalls === 2 && result.downloadLinks === 1 && result.revokedUrls === 1 && result.overlayCount === 1 ? 'complete' : 'failed';
   } catch (error) {
     document.getElementById('result').textContent = String(error?.stack || error);
     document.title = 'error';

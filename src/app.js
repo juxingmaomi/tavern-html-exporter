@@ -91,8 +91,8 @@ function injectStyle() {
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = `
-    .thx-export-overlay{position:fixed;inset:0;z-index:100500;background:rgba(8,12,16,.72);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(6px)}
-    .thx-export-panel{width:min(920px,100%);max-height:min(900px,96vh);overflow:auto;background:#101820;color:#edf3ef;border:1px solid #40515c;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,.48);font-family:"Microsoft YaHei","PingFang SC",sans-serif}
+    .thx-export-overlay{position:fixed;inset:0;z-index:100500;background:rgba(8,12,16,.78);display:flex;align-items:center;justify-content:center;padding:18px}
+    .thx-export-panel{width:min(920px,100%);max-height:min(900px,96vh);overflow:auto;background:#101820;color:#edf3ef;border:1px solid #40515c;border-radius:14px;box-shadow:0 18px 48px rgba(0,0,0,.42);font-family:"Microsoft YaHei","PingFang SC",sans-serif;contain:layout paint}
     .thx-export-head{position:sticky;top:0;z-index:4;display:flex;justify-content:space-between;gap:14px;align-items:center;padding:16px 18px;background:#14202a;border-bottom:1px solid #344650}.thx-export-head h2{margin:0;font-size:20px}.thx-export-head small{color:#9fb2aa}.thx-export-close{border:0;background:transparent;color:#fff;font-size:26px;cursor:pointer}
     .thx-export-body{padding:18px;display:grid;gap:16px}.thx-export-section{border:1px solid #344650;background:#121d25;padding:14px;border-radius:10px}.thx-export-section h3{margin:0 0 12px;font-size:16px}.thx-export-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.thx-export-field{display:grid;gap:6px}.thx-export-field>span{font-size:13px;color:#b9c8c1}.thx-export-panel input,.thx-export-panel select,.thx-export-panel textarea{width:100%;border:1px solid #435763;background:#0b141b;color:#edf3ef;border-radius:7px;padding:9px;font:inherit}.thx-export-panel textarea{resize:vertical}.thx-export-checks{display:flex;flex-wrap:wrap;gap:12px}.thx-export-checks label{display:flex;align-items:center;gap:6px}.thx-export-checks input{width:auto}
     .thx-rule-list{display:grid;gap:10px}.thx-rule{display:grid;grid-template-columns:1fr 2fr 90px 2fr auto;gap:8px;align-items:start}.thx-rule button,.thx-export-actions button,.thx-downloads button{border:1px solid #506773;background:#1f3540;color:#eef5f0;border-radius:7px;padding:9px 12px;cursor:pointer;font:inherit}.thx-rule button:hover,.thx-export-actions button:hover,.thx-downloads button:hover{background:#2a4855}.thx-export-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.thx-export-primary{background:#34735f!important;border-color:#5eaa8f!important;font-weight:700}.thx-export-status{color:#b9c8c1;font-size:13px}.thx-export-status.is-error{color:#ffaca2}.thx-downloads{display:grid;gap:8px}.thx-downloads a{display:block;color:#9fe1c6;overflow-wrap:anywhere}.thx-export-note{color:#aebeb6;font-size:13px;line-height:1.65}.thx-export-file[hidden]{display:none}.thx-export-fallback{position:fixed;right:18px;bottom:88px;z-index:10000;border:1px solid #6a8177;border-radius:999px;background:#29483e;color:white;padding:10px 14px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.3)}
@@ -224,7 +224,10 @@ async function prepareFileExport(document, file, settings, rules, diagnostics) {
 function showDownloads(panel, files, diagnostics) {
   const document = panel.ownerDocument;
   const container = panel.querySelector('[data-downloads]');
-  const urls = files.map(file => ({ ...file, url: URL.createObjectURL(new Blob(['\uFEFF', file.html], { type: 'text/html;charset=utf-8' })) }));
+  const urls = files.map(file => ({
+    name: file.name,
+    url: URL.createObjectURL(new Blob(['\uFEFF', file.html], { type: 'text/html;charset=utf-8' })),
+  }));
   container.innerHTML = `<p class="thx-export-note">已生成 ${files.length} 个文件。酒馆快照 ${diagnostics.snapshots} 条，酒馆格式 ${diagnostics.formatted} 条，前端静态界面 ${diagnostics.frontends} 个，安全文本 ${diagnostics.plain} 条。</p>`;
   if (diagnostics.warnings.length) {
     const details = document.createElement('details');
@@ -258,13 +261,18 @@ function showDownloads(panel, files, diagnostics) {
 function closePanel(overlay) {
   const panel = overlay.querySelector('.thx-export-panel');
   for (const url of panel?.__thxUrls || []) URL.revokeObjectURL(url);
+  if (panel) {
+    panel.__thxUrls = [];
+    panel.querySelector('[data-downloads]')?.replaceChildren();
+  }
   overlay.remove();
 }
 
 export function openExporterPanel() {
   injectStyle();
   const document = getHostDocument();
-  document.querySelector('.thx-export-overlay')?.remove();
+  const existing = document.querySelector('.thx-export-overlay');
+  if (existing) closePanel(existing);
   const settings = loadSettings();
   const overlay = document.createElement('div');
   overlay.className = 'thx-export-overlay';
