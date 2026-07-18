@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>running</title></head>
+<body><pre id="result">running</pre>
+<script type="module">
+  let formattingCalls = 0;
+  let revokedUrls = 0;
+  const nativeRevokeObjectUrl = URL.revokeObjectURL.bind(URL);
+  URL.revokeObjectURL = url => {
+    revokedUrls += 1;
+    nativeRevokeObjectUrl(url);
+  };
+  window.SillyTavern = {
+    characterId: 0,
+    characters: [{ name: '测试角色' }],
+    name1: '小薇',
+    name2: '测试角色',
+    getCurrentChatId: () => '测试聊天',
+  };
+  window.TavernHelper = {
+    getLastMessageId: () => 1,
+    getChatMessages: () => [
+      { message_id: 0, role: 'user', is_hidden: false, name: '小薇', message: '你好' },
+      { message_id: 1, role: 'assistant', is_hidden: false, name: '测试角色', message: '你好呀' },
+    ],
+    retrieveDisplayedMessage: () => ({ length: 0 }),
+    formatAsDisplayedMessage: value => {
+      formattingCalls += 1;
+      return `<p>${value}</p>`;
+    },
+  };
+
+  try {
+    await import('../index.js');
+    window.__TH_CHAT_HTML_EXPORTER_V1__.open();
+    const panel = document.querySelector('.thx-export-panel');
+    panel.querySelector('[data-export]').click();
+    const started = Date.now();
+    while (!panel.querySelector('[data-status]').textContent.startsWith('完成：')) {
+      if (Date.now() - started > 5000) throw new Error(panel.querySelector('[data-status]').textContent);
+      await new Promise(resolve => setTimeout(resolve, 40));
+    }
+    const status = panel.querySelector('[data-status]').textContent;
+    const downloadLinks = panel.querySelectorAll('[data-downloads] a[download]').length;
+    window.__TH_CHAT_HTML_EXPORTER_V1__.open();
+    const reopenedPanel = document.querySelector('.thx-export-panel');
+    const result = {
+      fallbackButtonExists: Boolean(document.getElementById('th-chat-html-exporter-v1-button')),
+      panelOpened: Boolean(reopenedPanel),
+      formattingCalls,
+      downloadLinks,
+      status,
+      revokedUrls,
+      overlayCount: document.querySelectorAll('.thx-export-overlay').length,
+    };
+    document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+    document.title = result.formattingCalls === 2 && result.downloadLinks === 1 && result.revokedUrls === 1 && result.overlayCount === 1 ? 'complete' : 'failed';
+  } catch (error) {
+    document.getElementById('result').textContent = String(error?.stack || error);
+    document.title = 'error';
+  }
+</script>
+</body>
+</html>

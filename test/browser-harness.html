@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>running</title></head>
+<body><pre id="result">running</pre>
+<script type="module">
+  import { normalizeSettings } from '../src/core.js';
+  import { buildArchiveDocument } from '../src/archive.js';
+  import { renderCurrentMessage, sanitizeFragment, snapshotDisplayedMessage } from '../src/render.js';
+
+  const loadFrame = html => new Promise(resolve => {
+    const frame = document.createElement('iframe');
+    frame.addEventListener('load', () => setTimeout(() => resolve(frame), 80), { once: true });
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  });
+
+  try {
+    const sanitized = sanitizeFragment(document, '<scr' + 'ipt>bad()</scr' + 'ipt><img src="x" onerror="bad()"><a href="javascript:bad()">x</a>');
+    const frontendSource = `<!doctype html><html><head><style>.frontend-proof{color:rgb(7, 8, 9)}.tx-pack-interface{display:none}.tx-pack-panel{display:none}</style></head><body><div class="tx-pack-wrapper"><div class="tx-pack-raw" style="display:none"><snapshot><div class="frontend-proof">前端界面</div></snapshot><abstract>摘要内容</abstract></div><div class="tx-pack-toggle">展开</div><div class="tx-pack-interface" style="display:none"><div class="tx-pack-tabs"></div><div class="tx-pack-viewport"></div></div><scr` + `ipt>document.querySelector('.tx-pack-interface').style.display='block'</scr` + `ipt></div></body></html>`;
+    const encodedFrontend = frontendSource.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    let formattingCalls = 0;
+    const helper = {
+      retrieveDisplayedMessage: () => ({ length: 0 }),
+      formatAsDisplayedMessage: value => {
+        formattingCalls += 1;
+        return `<style>.mes_text .formatted-scope{color:rgb(1, 2, 3)}</style><p class="formatted-scope">${value}</p><pre><code>${encodedFrontend}</code></pre><img src="x" onerror="bad()"><scr` + `ipt>bad()</scr` + `ipt>`;
+      },
+    };
+    const diagnostics = { snapshots: 0, formatted: 0, plain: 0, frontends: 0, warnings: [] };
+    const rendered = await renderCurrentMessage({
+      document,
+      tavernHelper: helper,
+      message: { id: 2, role: 'assistant', hidden: false, name: '角色', text: '正文' },
+      rules: [],
+      settings: normalizeSettings({ preferDisplayedSnapshot: false }),
+      diagnostics,
+    });
+
+    const chat = document.createElement('div');
+    chat.id = 'chat';
+    const messageNode = document.createElement('div');
+    messageNode.className = 'mes';
+    messageNode.setAttribute('mesid', '0');
+    const displayedNode = document.createElement('div');
+    displayedNode.className = 'mes_text';
+    const scopedStyle = document.createElement('style');
+    scopedStyle.textContent = '.mes_text .snapshot-scope{color:rgb(4, 5, 6)}';
+    const scopedContent = document.createElement('div');
+    scopedContent.className = 'snapshot-scope';
+    scopedContent.textContent = '作用域测试';
+    displayedNode.appendChild(scopedStyle);
+    displayedNode.appendChild(scopedContent);
+    const renderRoot = document.createElement('div');
+    renderRoot.className = 'TH-render';
+    const liveFrame = document.createElement('iframe');
+    liveFrame.setAttribute('sandbox', '');
+    liveFrame.setAttribute('srcdoc', '<html><head><style>.red{color:red}</style><script>bad()</' + 'script></head><body><div class="red">快照</div></body></html>');
+    renderRoot.appendChild(liveFrame);
+    displayedNode.appendChild(renderRoot);
+    const pendingRenderRoot = document.createElement('div');
+    pendingRenderRoot.className = 'TH-render';
+    pendingRenderRoot.innerHTML = '<pre class="hidden!"><code>&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;style&gt;.pending-proof{color:rgb(10, 11, 12)}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class="pending-proof"&gt;未加载前端&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</code></pre>';
+    displayedNode.appendChild(pendingRenderRoot);
+    messageNode.appendChild(displayedNode);
+    chat.appendChild(messageNode);
+    document.body.appendChild(chat);
+    const snapshotHelper = { retrieveDisplayedMessage: () => { throw new Error('不应调用回退 API'); } };
+    const snapshot = snapshotDisplayedMessage(document, snapshotHelper, 0);
+    const snapshotTemplate = document.createElement('template');
+    snapshotTemplate.innerHTML = snapshot;
+    const snapshotFrame = snapshotTemplate.content.querySelector('iframe');
+    const outerSrcdoc = snapshotFrame?.getAttribute('srcdoc') || '';
+    await new Promise(resolve => {
+      snapshotFrame.addEventListener('load', resolve, { once: true });
+      document.body.appendChild(snapshotFrame);
+    });
+    const snapshotNestedFrames = Array.from(snapshotFrame.contentDocument.querySelectorAll('iframe.thx-rich-frame'));
+    await Promise.all(snapshotNestedFrames.map(frame => frame.contentDocument?.body ? Promise.resolve() : new Promise(resolve => frame.addEventListener('load', resolve, { once: true }))));
+
+    const renderedTemplate = document.createElement('template');
+    renderedTemplate.innerHTML = rendered.html;
+    const renderedFrame = renderedTemplate.content.querySelector('iframe');
+    await new Promise(resolve => {
+      renderedFrame.addEventListener('load', resolve, { once: true });
+      document.body.appendChild(renderedFrame);
+    });
+    const formattedNestedFrame = renderedFrame.contentDocument.querySelector('iframe.thx-rich-frame');
+    if (!formattedNestedFrame.contentDocument?.body) {
+      await new Promise(resolve => formattedNestedFrame.addEventListener('load', resolve, { once: true }));
+    }
+
+    const archive = buildArchiveDocument([{ ...rendered, source: rendered.source }], {
+      title: '安全测试', baseName: '安全测试', part: 1, totalParts: 1,
+      settings: normalizeSettings({ customCss: '</sty' + 'le><scr' + 'ipt>document.documentElement.dataset.pwn="yes"</scr' + 'ipt><sty' + 'le>' }),
+      characterName: '角色', chatTitle: '聊天',
+    });
+    const archiveFrame = await loadFrame(archive);
+
+    const result = {
+      sanitizerRemovedScript: !sanitized.includes('<script'),
+      sanitizerRemovedEvent: !sanitized.includes('onerror'),
+      sanitizerRemovedJavascriptUrl: !sanitized.includes('javascript:'),
+      formattingCalls,
+      renderedHasNoScript: !rendered.html.includes('<script'),
+      renderedHasNoEvent: !rendered.html.includes('onerror'),
+      snapshotKeepsStyle: outerSrcdoc.includes('.red{color:red}'),
+      snapshotRemovesScript: !outerSrcdoc.includes('<script'),
+      snapshotScopeApplied: getComputedStyle(snapshotFrame.contentDocument.querySelector('.snapshot-scope')).color === 'rgb(4, 5, 6)',
+      formattedScopeApplied: getComputedStyle(renderedFrame.contentDocument.querySelector('.formatted-scope')).color === 'rgb(1, 2, 3)',
+      snapshotRebuiltPendingFrontend: snapshotNestedFrames.length === 2 && getComputedStyle(snapshotNestedFrames[1].contentDocument.querySelector('.pending-proof')).color === 'rgb(10, 11, 12)',
+      formattedFrontendApplied: getComputedStyle(formattedNestedFrame.contentDocument.querySelector('.frontend-proof')).color === 'rgb(7, 8, 9)',
+      formattedFrontendMaterialized: formattedNestedFrame.contentDocument.querySelectorAll('.thx-static-section').length === 2 && !formattedNestedFrame.contentDocument.querySelector('.tx-pack-raw') && getComputedStyle(formattedNestedFrame.contentDocument.querySelector('.tx-pack-interface')).display === 'block',
+      frontendCount: diagnostics.frontends,
+      snapshotRemovedHiddenCode: !snapshotFrame.contentDocument.querySelector('.TH-render pre'),
+      archiveUsesExpandedFrameLimit: archive.includes('50000') && !archive.includes('height + 8, 2400'),
+      customCssDidNotExecute: archiveFrame.contentDocument.documentElement.dataset.pwn !== 'yes',
+      archiveMessageCount: archiveFrame.contentDocument.querySelectorAll('.thx-message').length,
+    };
+    document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+    document.title = Object.values(result).every(Boolean) ? 'complete' : 'failed';
+  } catch (error) {
+    document.getElementById('result').textContent = String(error?.stack || error);
+    document.title = 'error';
+  }
+</script>
+</body>
+</html>

@@ -1,33 +1,42 @@
-# 聊天记录 HTML 导出器 GitHub 版使用说明
+# 聊天记录 HTML 导出器 v1.5 使用说明
 
-## 第一次使用
+`v1.5` 修复 `SCENE APPENDICES` 等依赖 JavaScript 的正则前端在导出后只剩空标题的问题。
 
-导入这个文件：
+## 第一次安装
 
-`D:\Codex\UserFiles\outputs\聊天记录HTML导出器-GitHub入口壳.json`
+在酒馆助手的脚本管理中导入：
 
-导入以后，酒馆会从 GitHub 加载：
+`聊天记录HTML导出器-GitHub入口壳.json`
 
-`https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v0.31/index.js`
+保存后刷新酒馆页面，点击“HTML导出”。
 
-## 以后更新版本
+## 以后更新
 
-打开酒馆助手脚本，找到入口壳里的这一行：
-
-```js
-const VERSION = 'v0.31';
-```
-
-把版本号改成新版本，例如：
+打开入口壳脚本，找到：
 
 ```js
-const VERSION = 'v0.32';
+const VERSION = 'v1.5';
 ```
 
-保存后刷新页面即可。
+例如以后更新到 v1.6：
 
-## 重要提醒
+```js
+const VERSION = 'v1.6';
+```
 
-- GitHub 上必须真的发布了对应 tag，例如 `v0.31`，入口壳才能加载成功。
-- 如果刚发布后加载失败，可能是 jsDelivr 缓存还没刷新，等一两分钟再试。
-- 如果想回退旧版本，把版本号改回旧 tag 即可。
+保存并刷新页面。入口壳会先使用 gcore.jsdelivr.net，失败时自动尝试 cdn.jsdelivr.net。
+
+## 推荐设置
+
+- 日常导出当前聊天：开启“优先保存已显示界面快照”。
+- 使用自定义正则：添加规则后会自动使用标准酒馆格式化，避免对现成界面重复套正则。
+- 几千楼的大聊天：每个 HTML 建议设置为 100～200 条消息。
+- 未打开的聊天：选择“本地 JSON / JSONL”，手动选择聊天文件。
+
+## 与旧版的区别
+
+- 不会重复执行酒馆正则。
+- 不再猜测聊天目录或请求未打开的聊天接口。
+- 不保存失效的 blob iframe。
+- 不允许聊天内容或自定义 CSS 注入脚本。
+- 不使用把所有楼层塞进一个巨大 JSON 的假分页。
