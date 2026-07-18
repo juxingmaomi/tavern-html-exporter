@@ -22,7 +22,7 @@
       retrieveDisplayedMessage: () => ({ length: 0 }),
       formatAsDisplayedMessage: value => {
         formattingCalls += 1;
-        return `<p>${value}</p><img src="x" onerror="bad()"><scr` + `ipt>bad()</scr` + `ipt>`;
+        return `<style>.mes_text .formatted-scope{color:rgb(1, 2, 3)}</style><p class="formatted-scope">${value}</p><img src="x" onerror="bad()"><scr` + `ipt>bad()</scr` + `ipt>`;
       },
     };
     const diagnostics = { snapshots: 0, formatted: 0, plain: 0, warnings: [] };
@@ -36,6 +36,13 @@
     });
 
     const displayedNode = document.createElement('div');
+    const scopedStyle = document.createElement('style');
+    scopedStyle.textContent = '.mes_text .snapshot-scope{color:rgb(4, 5, 6)}';
+    const scopedContent = document.createElement('div');
+    scopedContent.className = 'snapshot-scope';
+    scopedContent.textContent = '作用域测试';
+    displayedNode.appendChild(scopedStyle);
+    displayedNode.appendChild(scopedContent);
     const renderRoot = document.createElement('div');
     renderRoot.className = 'TH-render';
     const liveFrame = document.createElement('iframe');
@@ -47,7 +54,20 @@
     const snapshot = snapshotDisplayedMessage(document, snapshotHelper, 0);
     const snapshotTemplate = document.createElement('template');
     snapshotTemplate.innerHTML = snapshot;
-    const outerSrcdoc = snapshotTemplate.content.querySelector('iframe')?.getAttribute('srcdoc') || '';
+    const snapshotFrame = snapshotTemplate.content.querySelector('iframe');
+    const outerSrcdoc = snapshotFrame?.getAttribute('srcdoc') || '';
+    await new Promise(resolve => {
+      snapshotFrame.addEventListener('load', resolve, { once: true });
+      document.body.appendChild(snapshotFrame);
+    });
+
+    const renderedTemplate = document.createElement('template');
+    renderedTemplate.innerHTML = rendered.html;
+    const renderedFrame = renderedTemplate.content.querySelector('iframe');
+    await new Promise(resolve => {
+      renderedFrame.addEventListener('load', resolve, { once: true });
+      document.body.appendChild(renderedFrame);
+    });
 
     const archive = buildArchiveDocument([{ ...rendered, source: rendered.source }], {
       title: '安全测试', baseName: '安全测试', part: 1, totalParts: 1,
@@ -65,6 +85,8 @@
       renderedHasNoEvent: !rendered.html.includes('onerror'),
       snapshotKeepsStyle: outerSrcdoc.includes('.red{color:red}'),
       snapshotRemovesScript: !outerSrcdoc.includes('<script'),
+      snapshotScopeApplied: getComputedStyle(snapshotFrame.contentDocument.querySelector('.snapshot-scope')).color === 'rgb(4, 5, 6)',
+      formattedScopeApplied: getComputedStyle(renderedFrame.contentDocument.querySelector('.formatted-scope')).color === 'rgb(1, 2, 3)',
       customCssDidNotExecute: archiveFrame.contentDocument.documentElement.dataset.pwn !== 'yes',
       archiveMessageCount: archiveFrame.contentDocument.querySelectorAll('.thx-message').length,
     };

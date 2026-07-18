@@ -1,5 +1,5 @@
 export const SCRIPT_NAME = '聊天记录 HTML 导出器';
-export const SCRIPT_VERSION = 'v1.0';
+export const SCRIPT_VERSION = 'v1.1';
 export const BUTTON_NAME = 'HTML导出';
 export const STORAGE_KEY = 'th_html_exporter_settings_v1';
 

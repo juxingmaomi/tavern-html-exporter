@@ -1,4 +1,6 @@
-# 聊天记录 HTML 导出器 v1.0 使用说明
+# 聊天记录 HTML 导出器 v1.1 使用说明
+
+`v1.1` 修复了酒馆正则生成的 `.mes_text ...` 样式在导出页面中失效的问题。
 
 ## 第一次安装
 
@@ -13,13 +15,13 @@
 打开入口壳脚本，找到：
 
 ```js
-const VERSION = 'v1.0';
+const VERSION = 'v1.1';
 ```
 
-例如更新到 v1.1：
+例如以后更新到 v1.2：
 
 ```js
-const VERSION = 'v1.1';
+const VERSION = 'v1.2';
 ```
 
 保存并刷新页面。入口壳会先使用 gcore.jsdelivr.net，失败时自动尝试 cdn.jsdelivr.net。

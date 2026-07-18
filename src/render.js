@@ -96,7 +96,7 @@ export function sanitizeDocument(document, html) {
 }
 
 function buildIsolatedFrame(document, html, title = '静态富文本') {
-  const frameDocument = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;background:transparent;color:inherit;font-family:system-ui,"Microsoft YaHei",sans-serif;line-height:1.65;overflow-wrap:anywhere}*{box-sizing:border-box}img,video{max-width:100%;height:auto}pre{white-space:pre-wrap;overflow:auto}</style></head><body>${html}</body></html>`;
+  const frameDocument = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;background:transparent;color:inherit;font-family:system-ui,"Microsoft YaHei",sans-serif;line-height:1.65;overflow-wrap:anywhere}*{box-sizing:border-box}img,video{max-width:100%;height:auto}pre{white-space:pre-wrap;overflow:auto}</style></head><body class="mes_text">${html}</body></html>`;
   const iframe = document.createElement('iframe');
   iframe.className = 'thx-rich-frame';
   iframe.setAttribute('sandbox', 'allow-same-origin');

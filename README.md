@@ -2,7 +2,13 @@
 
 适用于 SillyTavern + 酒馆助手的聊天记录导出脚本。
 
-当前稳定版本：`v1.0`
+当前稳定版本：`v1.1`
+
+## v1.1 修复
+
+- 修复酒馆正则生成的 `.mes_text ...` 作用域样式在导出 HTML 中无法命中的问题。
+- 静态快照 iframe 和普通消息容器现在都会保留酒馆的 `.mes_text` 上下文。
+- 增加浏览器回归测试，直接验证快照与标准格式化内容的计算样式。
 
 ## v1.0 是全新重写版
 
@@ -25,23 +31,23 @@
 入口壳默认加载：
 
 ```text
-https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v1.0/index.js
+https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v1.1/index.js
 ```
 
 刷新酒馆页面后，点击酒馆助手按钮栏中的“HTML导出”。如果按钮栏 API 暂时不可用，右下角会出现备用按钮。
 
 ## 更新版本
 
-以后发布 `v1.1`、`v1.2` 时，只需打开入口壳脚本并修改：
-
-```js
-const VERSION = 'v1.0';
-```
-
-例如更新到：
+以后发布 `v1.2`、`v1.3` 时，只需打开入口壳脚本并修改：
 
 ```js
 const VERSION = 'v1.1';
+```
+
+例如以后更新到：
+
+```js
+const VERSION = 'v1.2';
 ```
 
 保存并刷新酒馆页面即可。旧标签不会被覆盖，可以随时把版本号改回旧版。
@@ -74,7 +80,7 @@ const VERSION = 'v1.1';
 
 ## 安全限制
 
-- v1.0 不导出或执行聊天内容里的 JavaScript。
+- v1.1 不导出或执行聊天内容里的 JavaScript。
 - 依赖脚本运行的播放器、游戏或交互组件只保存其静态可见内容。
 - 外部图片、字体和音频不会自动转成内嵌文件；离线时可能无法访问这些外部资源。
 

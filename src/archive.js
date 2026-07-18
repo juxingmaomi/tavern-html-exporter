@@ -56,7 +56,7 @@ function buildMessages(records) {
         <strong>${escapeHtml(record.name)}</strong>
         <span>#${escapeHtml(record.id)} · ${escapeHtml(record.role)} · ${escapeHtml(record.source)}</span>
       </header>
-      <section class="thx-content">${record.html}</section>
+      <section class="thx-content mes_text">${record.html}</section>
     </article>`).join('');
 }
 
