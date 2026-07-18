@@ -96,14 +96,20 @@ export function sanitizeDocument(document, html) {
 }
 
 function buildIsolatedFrame(document, html, title = '静态富文本') {
-  const frameDocument = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;background:transparent;color:inherit;font-family:system-ui,"Microsoft YaHei",sans-serif;line-height:1.65;overflow-wrap:anywhere}*{box-sizing:border-box}img,video{max-width:100%;height:auto}pre{white-space:pre-wrap;overflow:auto}</style></head><body class="mes_text">${html}</body></html>`;
+  const frameDocument = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0;background:transparent;color:inherit;font-family:system-ui,"Microsoft YaHei",sans-serif;line-height:1.65;overflow-wrap:anywhere}*{box-sizing:border-box}img,video{max-width:100%;height:auto}pre{white-space:pre-wrap;overflow:auto}.hidden\\!{display:none!important}.TH-render>iframe,iframe.thx-rich-frame{display:block;width:100%;min-height:420px;border:0}</style></head><body class="mes_text">${html}</body></html>`;
+  const iframe = createStaticFrame(document, frameDocument, title);
+  return iframe.outerHTML;
+}
+
+function createStaticFrame(document, frameDocument, title, height = 720) {
   const iframe = document.createElement('iframe');
   iframe.className = 'thx-rich-frame';
   iframe.setAttribute('sandbox', 'allow-same-origin');
   iframe.setAttribute('referrerpolicy', 'no-referrer');
   iframe.setAttribute('title', title);
   iframe.setAttribute('srcdoc', frameDocument);
-  return iframe.outerHTML;
+  iframe.style.cssText = `display:block;width:100%;height:${height}px;border:0`;
+  return iframe;
 }
 
 function isRichHtml(html) {
@@ -127,7 +133,47 @@ function captureFrameDocument(frame) {
   return frame.getAttribute('srcdoc') || '';
 }
 
-export function snapshotDisplayedMessage(document, tavernHelper, messageId) {
+function getFrameHeight(frame) {
+  if (!frame) return 720;
+  const inlineHeight = Number.parseFloat(frame.style?.height || '');
+  if (Number.isFinite(inlineHeight) && inlineHeight > 0) return Math.min(Math.max(inlineHeight, 180), 2400);
+  try {
+    const doc = frame.contentDocument || frame.contentWindow?.document;
+    const height = Math.max(doc?.body?.scrollHeight || 0, doc?.documentElement?.scrollHeight || 0, frame.getBoundingClientRect?.().height || 0);
+    if (height > 0) return Math.min(Math.max(height + 8, 180), 2400);
+  } catch {}
+  return 720;
+}
+
+function isFrontendSource(value) {
+  const content = String(value || '');
+  return ['html>', '<head>', '<body'].some(tag => content.includes(tag));
+}
+
+function replaceFrontendCodeBlocks(document, root, title) {
+  let count = 0;
+  Array.from(root.querySelectorAll('pre')).forEach(pre => {
+    if (!root.contains(pre)) return;
+    const code = pre.querySelector('code') || pre;
+    const source = String(code.textContent || '').trim();
+    if (!isFrontendSource(source)) return;
+    count += 1;
+    const frame = createStaticFrame(document, sanitizeDocument(document, source), `${title} 前端界面 ${count}`);
+    const renderRoot = pre.closest('.TH-render');
+    if (renderRoot && root.contains(renderRoot)) renderRoot.replaceWith(frame);
+    else pre.replaceWith(frame);
+  });
+  return count;
+}
+
+function renderFrontendHtml(document, html, title) {
+  const template = document.createElement('template');
+  template.innerHTML = String(html || '');
+  const count = replaceFrontendCodeBlocks(document, template.content, title);
+  return { html: template.innerHTML.trim(), count };
+}
+
+export function snapshotDisplayedMessage(document, tavernHelper, messageId, diagnostics) {
   let sourceNode = document.querySelector(`#chat > .mes[mesid="${messageId}"] .mes_text`);
   if (!sourceNode && tavernHelper && typeof tavernHelper.retrieveDisplayedMessage === 'function') {
     try {
@@ -141,7 +187,8 @@ export function snapshotDisplayedMessage(document, tavernHelper, messageId) {
   const sourceFrames = Array.from(sourceNode.querySelectorAll('iframe'));
   const clonedFrames = Array.from(clone.querySelectorAll('iframe'));
   clonedFrames.forEach((frame, index) => {
-    const captured = captureFrameDocument(sourceFrames[index]);
+    const sourceFrame = sourceFrames[index];
+    const captured = captureFrameDocument(sourceFrame);
     if (!captured) {
       const note = document.createElement('div');
       note.className = 'thx-frame-note';
@@ -155,9 +202,21 @@ export function snapshotDisplayedMessage(document, tavernHelper, messageId) {
     frame.setAttribute('sandbox', 'allow-same-origin');
     frame.setAttribute('referrerpolicy', 'no-referrer');
     frame.setAttribute('title', '酒馆界面静态快照');
+    frame.style.cssText = `display:block;width:100%;height:${getFrameHeight(sourceFrame)}px;border:0`;
+  });
+  let frontendCount = 0;
+  clone.querySelectorAll('.TH-render').forEach((renderRoot, index) => {
+    const frame = renderRoot.querySelector('iframe.thx-rich-frame');
+    if (frame) {
+      frontendCount += 1;
+      Array.from(renderRoot.children).forEach(child => { if (child !== frame) child.remove(); });
+      return;
+    }
+    frontendCount += replaceFrontendCodeBlocks(document, renderRoot, `楼层 ${messageId} 快照 ${index + 1}`);
   });
   const sanitized = sanitizeFragment(document, clone.innerHTML, { keepSnapshotFrames: true });
   if (!hasMeaningfulContent(document, sanitized)) return null;
+  if (diagnostics) diagnostics.frontends += frontendCount;
   return buildIsolatedFrame(document, sanitized, `楼层 ${messageId} 酒馆显示快照`);
 }
 
@@ -171,7 +230,7 @@ function renderPlainText(document, value, rules) {
 
 export async function renderCurrentMessage({ document, tavernHelper, message, rules, settings, diagnostics }) {
   if (settings.preferDisplayedSnapshot && rules.length === 0) {
-    const snapshot = snapshotDisplayedMessage(document, tavernHelper, message.id);
+    const snapshot = snapshotDisplayedMessage(document, tavernHelper, message.id, diagnostics);
     if (snapshot) {
       diagnostics.snapshots += 1;
       return { ...message, html: snapshot, source: '酒馆快照' };
@@ -184,10 +243,12 @@ export async function renderCurrentMessage({ document, tavernHelper, message, ru
     try {
       const formatted = tavernHelper.formatAsDisplayedMessage(preparedText, { message_id: message.id });
       const sanitized = sanitizeFragment(document, formatted, { keepSnapshotFrames: false });
+      const rendered = renderFrontendHtml(document, sanitized, `楼层 ${message.id}`);
+      diagnostics.frontends += rendered.count;
       diagnostics.formatted += 1;
       return {
         ...message,
-        html: isRichHtml(sanitized) ? buildIsolatedFrame(document, sanitized, `楼层 ${message.id} 富文本`) : sanitized,
+        html: isRichHtml(rendered.html) ? buildIsolatedFrame(document, rendered.html, `楼层 ${message.id} 富文本`) : rendered.html,
         source: '酒馆格式',
       };
     } catch (error) {

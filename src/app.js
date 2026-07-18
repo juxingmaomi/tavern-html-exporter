@@ -82,7 +82,7 @@ function getCurrentContext() {
 }
 
 function createDiagnostics() {
-  return { snapshots: 0, formatted: 0, plain: 0, warnings: [] };
+  return { snapshots: 0, formatted: 0, plain: 0, frontends: 0, warnings: [] };
 }
 
 function injectStyle() {
@@ -225,7 +225,7 @@ function showDownloads(panel, files, diagnostics) {
   const document = panel.ownerDocument;
   const container = panel.querySelector('[data-downloads]');
   const urls = files.map(file => ({ ...file, url: URL.createObjectURL(new Blob(['\uFEFF', file.html], { type: 'text/html;charset=utf-8' })) }));
-  container.innerHTML = `<p class="thx-export-note">已生成 ${files.length} 个文件。酒馆快照 ${diagnostics.snapshots} 条，酒馆格式 ${diagnostics.formatted} 条，安全文本 ${diagnostics.plain} 条。</p>`;
+  container.innerHTML = `<p class="thx-export-note">已生成 ${files.length} 个文件。酒馆快照 ${diagnostics.snapshots} 条，酒馆格式 ${diagnostics.formatted} 条，前端静态界面 ${diagnostics.frontends} 个，安全文本 ${diagnostics.plain} 条。</p>`;
   if (diagnostics.warnings.length) {
     const details = document.createElement('details');
     details.innerHTML = `<summary>查看 ${diagnostics.warnings.length} 条提示</summary><pre>${escapeHtml(diagnostics.warnings.join('\n'))}</pre>`;

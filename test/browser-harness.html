@@ -22,10 +22,10 @@
       retrieveDisplayedMessage: () => ({ length: 0 }),
       formatAsDisplayedMessage: value => {
         formattingCalls += 1;
-        return `<style>.mes_text .formatted-scope{color:rgb(1, 2, 3)}</style><p class="formatted-scope">${value}</p><img src="x" onerror="bad()"><scr` + `ipt>bad()</scr` + `ipt>`;
+        return `<style>.mes_text .formatted-scope{color:rgb(1, 2, 3)}</style><p class="formatted-scope">${value}</p><pre><code>&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;style&gt;.frontend-proof{color:rgb(7, 8, 9)}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class="frontend-proof"&gt;前端界面&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</code></pre><img src="x" onerror="bad()"><scr` + `ipt>bad()</scr` + `ipt>`;
       },
     };
-    const diagnostics = { snapshots: 0, formatted: 0, plain: 0, warnings: [] };
+    const diagnostics = { snapshots: 0, formatted: 0, plain: 0, frontends: 0, warnings: [] };
     const rendered = await renderCurrentMessage({
       document,
       tavernHelper: helper,
@@ -56,6 +56,10 @@
     liveFrame.setAttribute('srcdoc', '<html><head><style>.red{color:red}</style><script>bad()</' + 'script></head><body><div class="red">快照</div></body></html>');
     renderRoot.appendChild(liveFrame);
     displayedNode.appendChild(renderRoot);
+    const pendingRenderRoot = document.createElement('div');
+    pendingRenderRoot.className = 'TH-render';
+    pendingRenderRoot.innerHTML = '<pre class="hidden!"><code>&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;style&gt;.pending-proof{color:rgb(10, 11, 12)}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class="pending-proof"&gt;未加载前端&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</code></pre>';
+    displayedNode.appendChild(pendingRenderRoot);
     messageNode.appendChild(displayedNode);
     chat.appendChild(messageNode);
     document.body.appendChild(chat);
@@ -69,6 +73,8 @@
       snapshotFrame.addEventListener('load', resolve, { once: true });
       document.body.appendChild(snapshotFrame);
     });
+    const snapshotNestedFrames = Array.from(snapshotFrame.contentDocument.querySelectorAll('iframe.thx-rich-frame'));
+    await Promise.all(snapshotNestedFrames.map(frame => frame.contentDocument?.body ? Promise.resolve() : new Promise(resolve => frame.addEventListener('load', resolve, { once: true }))));
 
     const renderedTemplate = document.createElement('template');
     renderedTemplate.innerHTML = rendered.html;
@@ -77,6 +83,10 @@
       renderedFrame.addEventListener('load', resolve, { once: true });
       document.body.appendChild(renderedFrame);
     });
+    const formattedNestedFrame = renderedFrame.contentDocument.querySelector('iframe.thx-rich-frame');
+    if (!formattedNestedFrame.contentDocument?.body) {
+      await new Promise(resolve => formattedNestedFrame.addEventListener('load', resolve, { once: true }));
+    }
 
     const archive = buildArchiveDocument([{ ...rendered, source: rendered.source }], {
       title: '安全测试', baseName: '安全测试', part: 1, totalParts: 1,
@@ -96,6 +106,10 @@
       snapshotRemovesScript: !outerSrcdoc.includes('<script'),
       snapshotScopeApplied: getComputedStyle(snapshotFrame.contentDocument.querySelector('.snapshot-scope')).color === 'rgb(4, 5, 6)',
       formattedScopeApplied: getComputedStyle(renderedFrame.contentDocument.querySelector('.formatted-scope')).color === 'rgb(1, 2, 3)',
+      snapshotRebuiltPendingFrontend: snapshotNestedFrames.length === 2 && getComputedStyle(snapshotNestedFrames[1].contentDocument.querySelector('.pending-proof')).color === 'rgb(10, 11, 12)',
+      formattedFrontendApplied: getComputedStyle(formattedNestedFrame.contentDocument.querySelector('.frontend-proof')).color === 'rgb(7, 8, 9)',
+      frontendCount: diagnostics.frontends,
+      snapshotRemovedHiddenCode: !snapshotFrame.contentDocument.querySelector('.TH-render pre'),
       customCssDidNotExecute: archiveFrame.contentDocument.documentElement.dataset.pwn !== 'yes',
       archiveMessageCount: archiveFrame.contentDocument.querySelectorAll('.thx-message').length,
     };

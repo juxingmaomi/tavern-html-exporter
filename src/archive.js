@@ -110,6 +110,13 @@ export function buildArchiveDocument(records, meta) {
         try {
           const doc = frame.contentDocument;
           if (!doc) return;
+          doc.querySelectorAll('iframe.thx-rich-frame').forEach(innerFrame => {
+            if (!innerFrame.dataset.thxResizeBound) {
+              innerFrame.dataset.thxResizeBound = '1';
+              innerFrame.addEventListener('load', () => resizeFrame(innerFrame));
+            }
+            resizeFrame(innerFrame);
+          });
           const height = Math.max(doc.body?.scrollHeight || 0, doc.documentElement?.scrollHeight || 0, 180);
           frame.style.height = Math.min(height + 8, 2400) + 'px';
         } catch {}
@@ -118,6 +125,7 @@ export function buildArchiveDocument(records, meta) {
         frame.addEventListener('load', () => resizeFrame(frame));
         setTimeout(() => resizeFrame(frame), 80);
         setTimeout(() => resizeFrame(frame), 500);
+        setTimeout(() => resizeFrame(frame), 1500);
       });
       const messages = Array.from(document.querySelectorAll('.thx-message'));
       document.querySelector('[data-thx-search]')?.addEventListener('input', event => {
