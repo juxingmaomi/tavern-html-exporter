@@ -128,14 +128,13 @@ function captureFrameDocument(frame) {
 }
 
 export function snapshotDisplayedMessage(document, tavernHelper, messageId) {
-  if (!tavernHelper || typeof tavernHelper.retrieveDisplayedMessage !== 'function') return null;
-  let displayed;
-  try {
-    displayed = tavernHelper.retrieveDisplayedMessage(messageId);
-  } catch {
-    return null;
+  let sourceNode = document.querySelector(`#chat > .mes[mesid="${messageId}"] .mes_text`);
+  if (!sourceNode && tavernHelper && typeof tavernHelper.retrieveDisplayedMessage === 'function') {
+    try {
+      const displayed = tavernHelper.retrieveDisplayedMessage(messageId);
+      sourceNode = displayed?.get?.(0) || displayed?.[0];
+    } catch {}
   }
-  const sourceNode = displayed?.get?.(0) || displayed?.[0];
   if (!sourceNode) return null;
   const clone = sourceNode.cloneNode(true);
   clone.querySelectorAll('.mes_buttons,.extraMesButtons,.mes_edit_buttons,.mes_timer,.tokenCounterDisplay,.mesIDDisplay').forEach(node => node.remove());

@@ -41,6 +41,6 @@ test('large exports are split into versioned files', () => {
     characterName: '角色', userName: '小薇', chatTitle: '测试聊天',
   });
   assert.equal(files.length, 3);
-  assert.equal(files[0].name, '角色_测试聊天_v1.1_01.html');
-  assert.equal(files[2].name, '角色_测试聊天_v1.1_03.html');
+  assert.equal(files[0].name, '角色_测试聊天_v1.2_01.html');
+  assert.equal(files[2].name, '角色_测试聊天_v1.2_03.html');
 });

@@ -35,7 +35,13 @@
       diagnostics,
     });
 
+    const chat = document.createElement('div');
+    chat.id = 'chat';
+    const messageNode = document.createElement('div');
+    messageNode.className = 'mes';
+    messageNode.setAttribute('mesid', '0');
     const displayedNode = document.createElement('div');
+    displayedNode.className = 'mes_text';
     const scopedStyle = document.createElement('style');
     scopedStyle.textContent = '.mes_text .snapshot-scope{color:rgb(4, 5, 6)}';
     const scopedContent = document.createElement('div');
@@ -50,7 +56,10 @@
     liveFrame.setAttribute('srcdoc', '<html><head><style>.red{color:red}</style><script>bad()</' + 'script></head><body><div class="red">快照</div></body></html>');
     renderRoot.appendChild(liveFrame);
     displayedNode.appendChild(renderRoot);
-    const snapshotHelper = { retrieveDisplayedMessage: () => ({ 0: displayedNode, length: 1, get: () => displayedNode }) };
+    messageNode.appendChild(displayedNode);
+    chat.appendChild(messageNode);
+    document.body.appendChild(chat);
+    const snapshotHelper = { retrieveDisplayedMessage: () => { throw new Error('不应调用回退 API'); } };
     const snapshot = snapshotDisplayedMessage(document, snapshotHelper, 0);
     const snapshotTemplate = document.createElement('template');
     snapshotTemplate.innerHTML = snapshot;
