@@ -1,6 +1,6 @@
-# 聊天记录 HTML 导出器 v1.4 使用说明
+# 聊天记录 HTML 导出器 v1.5 使用说明
 
-`v1.4` 保留前端静态渲染功能，并减少导出大聊天后的内存占用和页面滚动卡顿。
+`v1.5` 修复 `SCENE APPENDICES` 等依赖 JavaScript 的正则前端在导出后只剩空标题的问题。
 
 ## 第一次安装
 
@@ -15,13 +15,13 @@
 打开入口壳脚本，找到：
 
 ```js
-const VERSION = 'v1.4';
+const VERSION = 'v1.5';
 ```
 
-例如以后更新到 v1.5：
+例如以后更新到 v1.6：
 
 ```js
-const VERSION = 'v1.5';
+const VERSION = 'v1.6';
 ```
 
 保存并刷新页面。入口壳会先使用 gcore.jsdelivr.net，失败时自动尝试 cdn.jsdelivr.net。

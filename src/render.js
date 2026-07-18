@@ -82,9 +82,58 @@ export function sanitizeFragment(document, html, options = {}) {
   return template.innerHTML.trim();
 }
 
+function materializeTxPackFrontends(parsed) {
+  parsed.querySelectorAll('.tx-pack-wrapper').forEach(wrapper => {
+    const raw = wrapper.querySelector('.tx-pack-raw');
+    const interfaceNode = wrapper.querySelector('.tx-pack-interface');
+    const viewport = wrapper.querySelector('.tx-pack-viewport');
+    if (!raw || !interfaceNode || !viewport) return;
+
+    const source = parsed.createElement('div');
+    source.innerHTML = raw.innerHTML;
+    const sections = [];
+    ['snapshot', 'abstract', 'todo', 'seeds', 'events'].forEach(tag => {
+      const node = source.querySelector(tag);
+      const content = String(node?.innerHTML || '').trim();
+      if (content) sections.push({ tag, content });
+    });
+    if (!sections.length) return;
+
+    interfaceNode.style.display = 'block';
+    interfaceNode.style.marginTop = '1em';
+    wrapper.querySelector('.tx-pack-tabs')?.remove();
+    viewport.replaceChildren();
+    viewport.style.height = 'auto';
+    viewport.style.maxHeight = 'none';
+    viewport.style.overflow = 'visible';
+    sections.forEach((section, index) => {
+      const panel = parsed.createElement('details');
+      panel.className = 'thx-static-section';
+      panel.open = index === 0;
+      panel.style.cssText = 'display:block;margin-bottom:1em;border-bottom:1px dashed currentColor;padding-bottom:.75em';
+      const heading = parsed.createElement('summary');
+      heading.textContent = section.tag.toUpperCase();
+      heading.style.cssText = 'cursor:pointer;margin:0 0 .55em;font-size:.85em;font-weight:700;letter-spacing:.12em;opacity:.75';
+      const content = parsed.createElement('div');
+      content.innerHTML = section.content;
+      panel.append(heading, content);
+      viewport.appendChild(panel);
+    });
+    wrapper.querySelector('.tx-pack-toggle')?.remove();
+    wrapper.querySelector('.theme-switch')?.remove();
+    raw.remove();
+    wrapper.dataset.parsed = 'static';
+  });
+}
+
+function materializeStaticFrontends(parsed) {
+  materializeTxPackFrontends(parsed);
+}
+
 export function sanitizeDocument(document, html) {
   const Parser = document.defaultView?.DOMParser || DOMParser;
   const parsed = new Parser().parseFromString(String(html || ''), 'text/html');
+  materializeStaticFrontends(parsed);
   sanitizeTree(parsed, { keepSnapshotFrames: false });
   parsed.querySelectorAll('link').forEach(node => node.remove());
   if (!parsed.querySelector('meta[charset]')) {

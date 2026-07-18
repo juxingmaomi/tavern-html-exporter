@@ -16,13 +16,15 @@
 
   try {
     const sanitized = sanitizeFragment(document, '<scr' + 'ipt>bad()</scr' + 'ipt><img src="x" onerror="bad()"><a href="javascript:bad()">x</a>');
+    const frontendSource = `<!doctype html><html><head><style>.frontend-proof{color:rgb(7, 8, 9)}.tx-pack-interface{display:none}.tx-pack-panel{display:none}</style></head><body><div class="tx-pack-wrapper"><div class="tx-pack-raw" style="display:none"><snapshot><div class="frontend-proof">前端界面</div></snapshot><abstract>摘要内容</abstract></div><div class="tx-pack-toggle">展开</div><div class="tx-pack-interface" style="display:none"><div class="tx-pack-tabs"></div><div class="tx-pack-viewport"></div></div><scr` + `ipt>document.querySelector('.tx-pack-interface').style.display='block'</scr` + `ipt></div></body></html>`;
+    const encodedFrontend = frontendSource.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
     let formattingCalls = 0;
     const helper = {
       retrieveDisplayedMessage: () => ({ length: 0 }),
       formatAsDisplayedMessage: value => {
         formattingCalls += 1;
-        return `<style>.mes_text .formatted-scope{color:rgb(1, 2, 3)}</style><p class="formatted-scope">${value}</p><pre><code>&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;style&gt;.frontend-proof{color:rgb(7, 8, 9)}&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div class="frontend-proof"&gt;前端界面&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</code></pre><img src="x" onerror="bad()"><scr` + `ipt>bad()</scr` + `ipt>`;
+        return `<style>.mes_text .formatted-scope{color:rgb(1, 2, 3)}</style><p class="formatted-scope">${value}</p><pre><code>${encodedFrontend}</code></pre><img src="x" onerror="bad()"><scr` + `ipt>bad()</scr` + `ipt>`;
       },
     };
     const diagnostics = { snapshots: 0, formatted: 0, plain: 0, frontends: 0, warnings: [] };
@@ -108,8 +110,10 @@
       formattedScopeApplied: getComputedStyle(renderedFrame.contentDocument.querySelector('.formatted-scope')).color === 'rgb(1, 2, 3)',
       snapshotRebuiltPendingFrontend: snapshotNestedFrames.length === 2 && getComputedStyle(snapshotNestedFrames[1].contentDocument.querySelector('.pending-proof')).color === 'rgb(10, 11, 12)',
       formattedFrontendApplied: getComputedStyle(formattedNestedFrame.contentDocument.querySelector('.frontend-proof')).color === 'rgb(7, 8, 9)',
+      formattedFrontendMaterialized: formattedNestedFrame.contentDocument.querySelectorAll('.thx-static-section').length === 2 && !formattedNestedFrame.contentDocument.querySelector('.tx-pack-raw') && getComputedStyle(formattedNestedFrame.contentDocument.querySelector('.tx-pack-interface')).display === 'block',
       frontendCount: diagnostics.frontends,
       snapshotRemovedHiddenCode: !snapshotFrame.contentDocument.querySelector('.TH-render pre'),
+      archiveUsesExpandedFrameLimit: archive.includes('50000') && !archive.includes('height + 8, 2400'),
       customCssDidNotExecute: archiveFrame.contentDocument.documentElement.dataset.pwn !== 'yes',
       archiveMessageCount: archiveFrame.contentDocument.querySelectorAll('.thx-message').length,
     };

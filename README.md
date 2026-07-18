@@ -2,7 +2,14 @@
 
 适用于 SillyTavern + 酒馆助手的聊天记录导出脚本。
 
-当前稳定版本：`v1.4`
+当前稳定版本：`v1.5`
+
+## v1.5 脚本前端静态化
+
+- 识别依赖 JavaScript 解析隐藏数据的 `tx-pack` / `SCENE APPENDICES` 前端。
+- 将其转换为原生 `<details>` 静态分区，`SNAPSHOT` 默认展开，其余内容可直接点击展开。
+- 移除原始隐藏数据和失效开关，避免导出后只剩一条空标题。
+- 放宽消息 iframe 自动高度上限，避免长正文把末尾前端界面藏在内部滚动条下。
 
 ## v1.4 性能修复
 
@@ -49,23 +56,23 @@
 入口壳默认加载：
 
 ```text
-https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v1.4/index.js
+https://gcore.jsdelivr.net/gh/juxingmaomi/tavern-html-exporter@v1.5/index.js
 ```
 
 刷新酒馆页面后，点击酒馆助手按钮栏中的“HTML导出”。如果按钮栏 API 暂时不可用，右下角会出现备用按钮。
 
 ## 更新版本
 
-以后发布 `v1.5`、`v1.6` 时，只需打开入口壳脚本并修改：
+以后发布 `v1.6`、`v1.7` 时，只需打开入口壳脚本并修改：
 
 ```js
-const VERSION = 'v1.4';
+const VERSION = 'v1.5';
 ```
 
 例如以后更新到：
 
 ```js
-const VERSION = 'v1.5';
+const VERSION = 'v1.6';
 ```
 
 保存并刷新酒馆页面即可。旧标签不会被覆盖，可以随时把版本号改回旧版。
@@ -98,7 +105,7 @@ const VERSION = 'v1.5';
 
 ## 安全限制
 
-- v1.4 不导出或执行聊天内容里的 JavaScript。
+- v1.5 不导出或执行聊天内容里的 JavaScript。
 - 依赖脚本运行的播放器、游戏或交互组件只保存其静态可见内容。
 - 外部图片、字体和音频不会自动转成内嵌文件；离线时可能无法访问这些外部资源。
 

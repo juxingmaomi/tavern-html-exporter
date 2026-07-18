@@ -106,19 +106,20 @@ export function buildArchiveDocument(records, meta) {
           console.warn('自定义 CSS 无法读取', error);
         }
       }
-      const resizeFrame = frame => {
+      const resizeFrame = (frame, depth = 0) => {
         try {
           const doc = frame.contentDocument;
           if (!doc) return;
           doc.querySelectorAll('iframe.thx-rich-frame').forEach(innerFrame => {
             if (!innerFrame.dataset.thxResizeBound) {
               innerFrame.dataset.thxResizeBound = '1';
-              innerFrame.addEventListener('load', () => resizeFrame(innerFrame));
+              innerFrame.addEventListener('load', () => resizeFrame(innerFrame, depth + 1));
             }
-            resizeFrame(innerFrame);
+            resizeFrame(innerFrame, depth + 1);
           });
           const height = Math.max(doc.body?.scrollHeight || 0, doc.documentElement?.scrollHeight || 0, 180);
-          frame.style.height = Math.min(height + 8, 2400) + 'px';
+          const maxHeight = depth === 0 ? 50000 : 12000;
+          frame.style.height = Math.min(height + 8, maxHeight) + 'px';
         } catch {}
       };
       document.querySelectorAll('iframe.thx-rich-frame').forEach(frame => {
